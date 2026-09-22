@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Happy Birthday Matt Lindh!</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -15,7 +15,9 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding: 2rem 1rem 3rem;
+      padding: 1.5rem 0.75rem 2rem;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
 
     .wordle-wrap {
@@ -24,14 +26,14 @@
       background: #fff;
       border-radius: 12px;
       box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-      padding: 2rem 1.5rem 2.5rem;
+      padding: 1.5rem 1rem 2rem;
     }
 
     .wordle-header {
       text-align: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
       border-bottom: 1px solid #e8e8e4;
-      padding-bottom: 1.25rem;
+      padding-bottom: 1rem;
     }
     .wordle-header .eyebrow {
       font-size: 11px;
@@ -42,25 +44,21 @@
       font-weight: 400;
     }
     .wordle-header h1 {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 600;
       color: #1a1a1a;
       margin-bottom: 4px;
     }
-    .wordle-header p {
-      font-size: 13px;
-      color: #666;
-    }
+    .wordle-header p { font-size: 13px; color: #666; }
 
-    /* Grid */
     .grid {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       align-items: center;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
     }
-    .row { display: flex; gap: 6px; }
+    .row { display: flex; gap: 5px; }
     .tile {
       width: 54px; height: 54px;
       display: flex; align-items: center; justify-content: center;
@@ -70,8 +68,8 @@
       color: #1a1a1a;
       background: #fff;
       text-transform: uppercase;
-      transition: border-color 0.1s;
       user-select: none;
+      -webkit-user-select: none;
     }
     .tile.filled { border-color: #999; }
     .tile.absent  { background: #787c7e; color: #fff; border-color: #787c7e; }
@@ -87,21 +85,15 @@
     }
     @keyframes pop {
       0%,100% { transform: scale(1); }
-      50% { transform: scale(1.12); }
-    }
-    @keyframes flip {
-      0%   { transform: rotateX(0deg); }
-      50%  { transform: rotateX(-90deg); }
-      100% { transform: rotateX(0deg); }
+      50% { transform: scale(1.1); }
     }
     .tile.shake { animation: shake 0.4s ease; }
     .tile.pop   { animation: pop 0.15s ease; }
 
-    /* Message */
     .message {
       text-align: center;
-      min-height: 26px;
-      margin-bottom: 0.75rem;
+      min-height: 24px;
+      margin-bottom: 0.6rem;
       font-size: 13px;
       color: #666;
       font-style: italic;
@@ -109,20 +101,19 @@
     .message.error { color: #c0392b; font-style: normal; font-weight: 600; }
     .message.win   { color: #6aaa64; font-style: normal; font-weight: 600; font-size: 15px; }
 
-    /* Hint */
-    .hint-wrap { text-align: center; margin-bottom: 1rem; }
+    .hint-wrap { text-align: center; margin-bottom: 0.75rem; }
     .hint-btn {
       background: none;
       border: 1px solid #d3d6da;
       border-radius: 20px;
-      padding: 5px 14px;
+      padding: 6px 16px;
       font-size: 12px;
       color: #888;
       cursor: pointer;
       font-family: inherit;
-      transition: border-color 0.15s, color 0.15s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
-    .hint-btn:hover { border-color: #999; color: #555; }
     .hint-text {
       display: none;
       margin-top: 8px;
@@ -132,67 +123,60 @@
     }
     .hint-text.visible { display: block; }
 
-    /* Keyboard */
     .keyboard {
       display: flex;
       flex-direction: column;
       gap: 6px;
       align-items: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
+      width: 100%;
     }
-    .kb-row { display: flex; gap: 5px; }
+    .kb-row {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+      width: 100%;
+    }
     .key {
-      height: 42px;
-      min-width: 34px;
-      padding: 0 6px;
+      height: 50px;
+      flex: 1;
+      max-width: 38px;
       border-radius: 5px;
       border: none;
       background: #d3d6da;
       color: #1a1a1a;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       text-transform: uppercase;
       font-family: inherit;
-      transition: background 0.15s, color 0.15s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      /* Active state feedback */
+      transition: opacity 0.1s;
     }
-    .key.wide { min-width: 54px; font-size: 11px; }
-    .key:active { opacity: 0.8; }
+    .key:active { opacity: 0.6; }
+    .key.wide { max-width: 58px; font-size: 11px; flex: 1.5; }
     .key.absent  { background: #787c7e; color: #fff; }
     .key.present { background: #c9b458; color: #fff; }
     .key.correct { background: #6aaa64; color: #fff; }
 
-    /* Legend */
     .legend {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       justify-content: center;
       margin-bottom: 1.25rem;
       flex-wrap: wrap;
     }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      color: #666;
-    }
-    .legend-dot {
-      width: 14px; height: 14px;
-      border-radius: 3px;
-      flex-shrink: 0;
-    }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
+    .legend-dot { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
 
-    /* Footer */
-    .footer {
-      display: none;
-      text-align: center;
-      border-top: 1px solid #e8e8e4;
-      padding-top: 1.25rem;
-    }
+    .footer { display: none; text-align: center; border-top: 1px solid #e8e8e4; padding-top: 1.25rem; }
     .footer.visible { display: block; }
     .bday-badge {
       display: inline-block;
@@ -206,12 +190,13 @@
       text-transform: uppercase;
       margin-bottom: 10px;
     }
-    .footer p {
-      font-size: 13px;
-      color: #666;
-      line-height: 1.7;
-    }
+    .footer p { font-size: 13px; color: #666; line-height: 1.7; }
     .footer strong { color: #1a1a1a; }
+
+    @media (max-width: 380px) {
+      .tile { width: 46px; height: 46px; font-size: 18px; }
+      .key { height: 44px; font-size: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -224,11 +209,10 @@
   </div>
 
   <div class="grid" id="grid"></div>
-
   <div class="message" id="message"></div>
 
   <div class="hint-wrap">
-    <button class="hint-btn" onclick="toggleHint()">Need a hint?</button>
+    <button class="hint-btn" id="hintBtn">Need a hint?</button>
     <div class="hint-text" id="hintText">Think: what Matt is always on, whether there's snow on it or not.</div>
   </div>
 
@@ -254,12 +238,10 @@
   </div>
 
 </div>
-
 <script>
   const ANSWER = "TRAIL";
   const MAX_GUESSES = 6;
   const WORD_LENGTH = 5;
-
   const KB_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ENTER,ZXCVBNM,DEL"];
 
   let currentRow = 0;
@@ -285,31 +267,31 @@
     tiles.push(rowTiles);
   }
 
-  // Build keyboard
+  // Build keyboard using divs instead of buttons (avoids iOS button quirks)
   KB_ROWS.forEach((rowStr, ri) => {
     const rowEl = document.getElementById("kb-row-" + ri);
     rowStr.split(",").forEach(chunk => {
-      if (chunk.length > 1) {
-        // Special key
-        const btn = document.createElement("button");
-        btn.className = "key wide";
-        btn.textContent = chunk;
-        btn.addEventListener("click", () => handleKey(chunk));
-        rowEl.appendChild(btn);
-      } else {
-        chunk.split("").forEach(k => {
-          const btn = document.createElement("button");
-          btn.className = "key";
-          btn.textContent = k;
-          btn.dataset.letter = k;
-          btn.addEventListener("click", () => handleKey(k));
-          rowEl.appendChild(btn);
-        });
-      }
+      const key = document.createElement("div");
+      const isSpecial = chunk.length > 1;
+      key.className = "key" + (isSpecial ? " wide" : "");
+      key.textContent = chunk;
+      key.setAttribute("role", "button");
+      key.setAttribute("tabindex", "0");
+      if (!isSpecial) key.dataset.letter = chunk;
+
+      // Use click only — most reliable across iOS Safari and desktop
+      key.addEventListener("click", () => handleKey(chunk));
+
+      rowEl.appendChild(key);
     });
   });
 
-  // Physical keyboard
+  // Hint button
+  document.getElementById("hintBtn").addEventListener("click", () => {
+    document.getElementById("hintText").classList.toggle("visible");
+  });
+
+  // Physical keyboard (desktop)
   document.addEventListener("keydown", e => {
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     if (e.key === "Enter") handleKey("ENTER");
@@ -319,7 +301,7 @@
 
   function handleKey(key) {
     if (gameOver) return;
-    if (key === "DEL" || key === "BACKSPACE") deleteLetter();
+    if (key === "DEL") deleteLetter();
     else if (key === "ENTER") submitGuess();
     else if (/^[A-Z]$/.test(key)) addLetter(key);
   }
@@ -351,7 +333,6 @@
       shakeRow(currentRow);
       return;
     }
-
     const guess = currentGuess.join("");
     const result = scoreGuess(guess, ANSWER);
     revealRow(currentRow, guess, result);
@@ -383,23 +364,13 @@
     const ansArr = answer.split("");
     const gArr = guess.split("");
     const used = Array(WORD_LENGTH).fill(false);
-
-    // Pass 1: correct
     for (let i = 0; i < WORD_LENGTH; i++) {
-      if (gArr[i] === ansArr[i]) {
-        result[i] = "correct";
-        used[i] = true;
-      }
+      if (gArr[i] === ansArr[i]) { result[i] = "correct"; used[i] = true; }
     }
-    // Pass 2: present
     for (let i = 0; i < WORD_LENGTH; i++) {
       if (result[i] === "correct") continue;
       for (let j = 0; j < WORD_LENGTH; j++) {
-        if (!used[j] && gArr[i] === ansArr[j]) {
-          result[i] = "present";
-          used[j] = true;
-          break;
-        }
+        if (!used[j] && gArr[i] === ansArr[j]) { result[i] = "present"; used[j] = true; break; }
       }
     }
     return result;
@@ -408,9 +379,7 @@
   function revealRow(row, guess, result) {
     result.forEach((state, i) => {
       setTimeout(() => {
-        const tile = tiles[row][i];
-        tile.style.transition = "transform 0.2s ease";
-        tile.classList.add(state);
+        tiles[row][i].classList.add(state);
         updateKey(guess[i], state);
       }, i * 200);
     });
@@ -418,13 +387,12 @@
 
   function updateKey(letter, state) {
     const priority = { correct: 3, present: 2, absent: 1 };
-    const current = keyStates[letter];
-    if (!current || priority[state] > priority[current]) {
+    if (!keyStates[letter] || priority[state] > priority[keyStates[letter]]) {
       keyStates[letter] = state;
-      document.querySelectorAll(".key").forEach(btn => {
-        if (btn.dataset.letter === letter) {
-          btn.classList.remove("absent", "present", "correct");
-          btn.classList.add(state);
+      document.querySelectorAll(".key").forEach(k => {
+        if (k.dataset.letter === letter) {
+          k.classList.remove("absent", "present", "correct");
+          k.classList.add(state);
         }
       });
     }
@@ -443,13 +411,7 @@
     const el = document.getElementById("message");
     el.textContent = msg;
     el.className = "message " + (type || "");
-    if (duration) {
-      setTimeout(() => { el.textContent = ""; el.className = "message"; }, duration);
-    }
-  }
-
-  function toggleHint() {
-    document.getElementById("hintText").classList.toggle("visible");
+    if (duration) setTimeout(() => { el.textContent = ""; el.className = "message"; }, duration);
   }
 </script>
 </body>
