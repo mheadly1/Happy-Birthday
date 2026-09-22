@@ -16,8 +16,6 @@
       align-items: flex-start;
       justify-content: center;
       padding: 1.5rem 0.75rem 2rem;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
     }
 
     .wordle-wrap {
@@ -64,7 +62,6 @@
       background: #fff;
       text-transform: uppercase;
       user-select: none;
-      -webkit-user-select: none;
     }
     .tile.filled { border-color: #999; }
     .tile.absent  { background: #787c7e; color: #fff; border-color: #787c7e; }
@@ -91,7 +88,6 @@
     .tile.pop   { animation: pop 0.15s ease; }
     .tile.bounce-win { animation: bounce-win 0.6s ease forwards; }
 
-    /* Confetti canvas */
     #confetti-canvas {
       position: fixed;
       top: 0; left: 0;
@@ -111,28 +107,23 @@
     .message.error { color: #c0392b; font-style: normal; font-weight: 600; }
     .message.win   { color: #6aaa64; font-style: normal; font-weight: 600; font-size: 16px; }
 
-    /* Hint & Answer Key buttons row */
     .util-row {
       display: flex;
       gap: 8px;
       justify-content: center;
       margin-bottom: 0.75rem;
-      flex-wrap: wrap;
     }
     .util-btn {
       background: none;
       border: 1px solid #d3d6da;
       border-radius: 20px;
-      padding: 5px 14px;
+      padding: 6px 16px;
       font-size: 12px;
       color: #888;
       cursor: pointer;
       font-family: inherit;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-      transition: border-color 0.15s, color 0.15s;
+      display: inline-block;
     }
-    .util-btn:hover { border-color: #999; color: #555; }
 
     .hint-text {
       display: none;
@@ -144,7 +135,6 @@
     }
     .hint-text.visible { display: block; }
 
-    /* Answer key panel */
     .answer-key {
       display: none;
       background: #f9f9f7;
@@ -162,23 +152,9 @@
       margin-bottom: 0.75rem;
       text-align: center;
     }
-    .answer-key-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .answer-key-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .answer-key-row .ak-num {
-      font-size: 11px;
-      color: #aaa;
-      width: 16px;
-      text-align: right;
-      flex-shrink: 0;
-    }
+    .answer-key-grid { display: flex; flex-direction: column; gap: 6px; }
+    .answer-key-row { display: flex; align-items: center; gap: 10px; }
+    .ak-num { font-size: 11px; color: #aaa; width: 16px; text-align: right; flex-shrink: 0; }
     .ak-tiles { display: flex; gap: 3px; }
     .ak-tile {
       width: 30px; height: 30px;
@@ -193,11 +169,7 @@
     .ak-tile.absent  { background: #787c7e; color: #fff; border-color: #787c7e; }
     .ak-tile.present { background: #c9b458; color: #fff; border-color: #c9b458; }
     .ak-tile.correct { background: #6aaa64; color: #fff; border-color: #6aaa64; }
-    .ak-label {
-      font-size: 12px;
-      color: #666;
-      font-style: italic;
-    }
+    .ak-label { font-size: 12px; color: #666; font-style: italic; }
     .ak-spoiler {
       display: none;
       font-size: 13px;
@@ -221,10 +193,9 @@
       color: #aaa;
       cursor: pointer;
       font-family: inherit;
-      touch-action: manipulation;
     }
 
-    /* Keyboard */
+    /* KEYBOARD — buttons with explicit cursor:pointer for iOS */
     .keyboard {
       display: flex;
       flex-direction: column;
@@ -250,13 +221,12 @@
       justify-content: center;
       text-transform: uppercase;
       font-family: inherit;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
       user-select: none;
-      -webkit-user-select: none;
-      transition: opacity 0.1s;
+      /* iOS Safari requires this on buttons */
+      -webkit-appearance: none;
+      appearance: none;
+      outline: none;
     }
-    .key:active { opacity: 0.6; }
     .key.wide { max-width: 58px; font-size: 11px; flex: 1.5; }
     .key.absent  { background: #787c7e; color: #fff; }
     .key.present { background: #c9b458; color: #fff; }
@@ -314,7 +284,6 @@
   </div>
   <div class="hint-text" id="hintText">Think: what Matt is always on, whether there's snow on it or not.</div>
 
-  <!-- Answer Key Panel -->
   <div class="answer-key" id="answerKey">
     <h3>Answer Key — guess sequence</h3>
     <div class="answer-key-grid" id="akGrid"></div>
@@ -351,7 +320,6 @@
   const WORD_LENGTH = 5;
   const KB_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ENTER,ZXCVBNM,DEL"];
 
-  // Answer key data: [word, [states], label]
   const AK_ROWS = [
     ["BEERS", ["absent","absent","absent","present","absent"], "R is in the word"],
     ["CLIMB", ["absent","absent","present","absent","absent"], "I is in the word"],
@@ -384,7 +352,7 @@
     tiles.push(rowTiles);
   }
 
-  // Build answer key panel
+  // Build answer key
   const akGrid = document.getElementById("akGrid");
   AK_ROWS.forEach((row, i) => {
     const [word, states, label] = row;
@@ -410,30 +378,43 @@
     akGrid.appendChild(rowEl);
   });
 
-  // Build keyboard
+  // Build keyboard — attach touchend for iOS, click for desktop
+  function attachKeyHandler(el, fn) {
+    let didTouch = false;
+    el.addEventListener("touchend", function(e) {
+      e.preventDefault();
+      didTouch = true;
+      fn();
+      setTimeout(() => { didTouch = false; }, 500);
+    });
+    el.addEventListener("click", function() {
+      if (didTouch) return;
+      fn();
+    });
+  }
+
   KB_ROWS.forEach((rowStr, ri) => {
     const rowEl = document.getElementById("kb-row-" + ri);
     rowStr.split(",").forEach(chunk => {
-      const key = document.createElement("div");
+      const btn = document.createElement("button");
       const isSpecial = chunk.length > 1;
-      key.className = "key" + (isSpecial ? " wide" : "");
-      key.textContent = chunk;
-      key.setAttribute("role", "button");
-      key.setAttribute("tabindex", "0");
-      if (!isSpecial) key.dataset.letter = chunk;
-      key.addEventListener("click", () => handleKey(chunk));
-      rowEl.appendChild(key);
+      btn.className = "key" + (isSpecial ? " wide" : "");
+      btn.textContent = chunk;
+      btn.type = "button";
+      if (!isSpecial) btn.dataset.letter = chunk;
+      attachKeyHandler(btn, () => handleKey(chunk));
+      rowEl.appendChild(btn);
     });
   });
 
   // Util buttons
-  document.getElementById("hintBtn").addEventListener("click", () => {
+  attachKeyHandler(document.getElementById("hintBtn"), () => {
     document.getElementById("hintText").classList.toggle("visible");
   });
-  document.getElementById("answerKeyBtn").addEventListener("click", () => {
+  attachKeyHandler(document.getElementById("answerKeyBtn"), () => {
     document.getElementById("answerKey").classList.toggle("visible");
   });
-  document.getElementById("revealBtn").addEventListener("click", () => {
+  attachKeyHandler(document.getElementById("revealBtn"), () => {
     document.getElementById("akSpoiler").classList.add("visible");
     document.getElementById("revealBtn").style.display = "none";
   });
@@ -574,13 +555,11 @@
     if (duration) setTimeout(() => { el.textContent = ""; el.className = "message"; }, duration);
   }
 
-  // ---- Confetti ----
   function launchConfetti() {
     const canvas = document.getElementById("confetti-canvas");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
     const colors = ["#6aaa64","#c9b458","#4a90d9","#e74c3c","#f39c12","#9b59b6"];
     const pieces = Array.from({length: 120}, () => ({
       x: Math.random() * canvas.width,
@@ -594,21 +573,18 @@
       spin: (Math.random() - 0.5) * 6,
       opacity: 1,
     }));
-
     let frame = 0;
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       pieces.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.angle += p.spin;
+        p.x += p.vx; p.y += p.vy; p.angle += p.spin;
         if (frame > 120) p.opacity -= 0.012;
         ctx.save();
         ctx.globalAlpha = Math.max(0, p.opacity);
         ctx.translate(p.x, p.y);
         ctx.rotate(p.angle * Math.PI / 180);
         ctx.fillStyle = p.color;
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
         ctx.restore();
       });
       frame++;
