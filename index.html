@@ -393,13 +393,18 @@
   });
 
   // Listen for input from the hidden field (iOS native keyboard)
+  // Debounced so a single tap cannot fire more than once per 300ms
+  let inputLocked = false;
   hiddenInput.addEventListener("input", function() {
+    if (inputLocked) { hiddenInput.value = ""; return; }
     const val = hiddenInput.value;
     if (!val) return;
     const last = val[val.length - 1];
     hiddenInput.value = "";
     if (/^[a-zA-Z]$/.test(last)) {
+      inputLocked = true;
       handleKey(last.toUpperCase());
+      setTimeout(() => { inputLocked = false; }, 300);
     }
   });
 
@@ -469,11 +474,14 @@
       if (chunk.length === 1) btn.dataset.letter = chunk;
 
       // On mobile, tapping a key focuses the hidden input AND sends the key
+      // inputLocked prevents the btn click and the input event both firing
       btn.addEventListener("click", function() {
         if (!gameOver) {
+          inputLocked = true;
           hiddenInput.value = "";
           hiddenInput.focus();
           handleKey(chunk);
+          setTimeout(() => { inputLocked = false; }, 300);
         }
       });
 
