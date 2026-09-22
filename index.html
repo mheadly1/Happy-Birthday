@@ -43,12 +43,7 @@
       margin-bottom: 6px;
       font-weight: 400;
     }
-    .wordle-header h1 {
-      font-size: 22px;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin-bottom: 4px;
-    }
+    .wordle-header h1 { font-size: 22px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
     .wordle-header p { font-size: 13px; color: #666; }
 
     .grid {
@@ -87,8 +82,23 @@
       0%,100% { transform: scale(1); }
       50% { transform: scale(1.1); }
     }
+    @keyframes bounce-win {
+      0%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-16px); }
+      60% { transform: translateY(-8px); }
+    }
     .tile.shake { animation: shake 0.4s ease; }
     .tile.pop   { animation: pop 0.15s ease; }
+    .tile.bounce-win { animation: bounce-win 0.6s ease forwards; }
+
+    /* Confetti canvas */
+    #confetti-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
 
     .message {
       text-align: center;
@@ -99,30 +109,122 @@
       font-style: italic;
     }
     .message.error { color: #c0392b; font-style: normal; font-weight: 600; }
-    .message.win   { color: #6aaa64; font-style: normal; font-weight: 600; font-size: 15px; }
+    .message.win   { color: #6aaa64; font-style: normal; font-weight: 600; font-size: 16px; }
 
-    .hint-wrap { text-align: center; margin-bottom: 0.75rem; }
-    .hint-btn {
+    /* Hint & Answer Key buttons row */
+    .util-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .util-btn {
       background: none;
       border: 1px solid #d3d6da;
       border-radius: 20px;
-      padding: 6px 16px;
+      padding: 5px 14px;
       font-size: 12px;
       color: #888;
       cursor: pointer;
       font-family: inherit;
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.15s, color 0.15s;
     }
+    .util-btn:hover { border-color: #999; color: #555; }
+
     .hint-text {
       display: none;
-      margin-top: 8px;
+      text-align: center;
+      margin-bottom: 0.6rem;
       font-size: 12px;
       color: #888;
       font-style: italic;
     }
     .hint-text.visible { display: block; }
 
+    /* Answer key panel */
+    .answer-key {
+      display: none;
+      background: #f9f9f7;
+      border: 1px solid #e8e8e4;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .answer-key.visible { display: block; }
+    .answer-key h3 {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 0.75rem;
+      text-align: center;
+    }
+    .answer-key-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .answer-key-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .answer-key-row .ak-num {
+      font-size: 11px;
+      color: #aaa;
+      width: 16px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .ak-tiles { display: flex; gap: 3px; }
+    .ak-tile {
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      border-radius: 3px;
+      border: 1.5px solid #d3d6da;
+      color: #1a1a1a;
+      background: #fff;
+      text-transform: uppercase;
+    }
+    .ak-tile.absent  { background: #787c7e; color: #fff; border-color: #787c7e; }
+    .ak-tile.present { background: #c9b458; color: #fff; border-color: #c9b458; }
+    .ak-tile.correct { background: #6aaa64; color: #fff; border-color: #6aaa64; }
+    .ak-label {
+      font-size: 12px;
+      color: #666;
+      font-style: italic;
+    }
+    .ak-spoiler {
+      display: none;
+      font-size: 13px;
+      font-weight: 700;
+      color: #6aaa64;
+      letter-spacing: 0.15em;
+      text-align: center;
+      margin-top: 0.75rem;
+      border-top: 1px solid #e8e8e4;
+      padding-top: 0.75rem;
+    }
+    .ak-spoiler.visible { display: block; }
+    .reveal-btn {
+      display: block;
+      margin: 0.75rem auto 0;
+      background: none;
+      border: 1px solid #d3d6da;
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 11px;
+      color: #aaa;
+      cursor: pointer;
+      font-family: inherit;
+      touch-action: manipulation;
+    }
+
+    /* Keyboard */
     .keyboard {
       display: flex;
       flex-direction: column;
@@ -131,12 +233,7 @@
       margin-bottom: 1.25rem;
       width: 100%;
     }
-    .kb-row {
-      display: flex;
-      gap: 4px;
-      justify-content: center;
-      width: 100%;
-    }
+    .kb-row { display: flex; gap: 4px; justify-content: center; width: 100%; }
     .key {
       height: 50px;
       flex: 1;
@@ -157,7 +254,6 @@
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
-      /* Active state feedback */
       transition: opacity 0.1s;
     }
     .key:active { opacity: 0.6; }
@@ -200,6 +296,7 @@
   </style>
 </head>
 <body>
+<canvas id="confetti-canvas"></canvas>
 <div class="wordle-wrap">
 
   <div class="wordle-header">
@@ -211,9 +308,18 @@
   <div class="grid" id="grid"></div>
   <div class="message" id="message"></div>
 
-  <div class="hint-wrap">
-    <button class="hint-btn" id="hintBtn">Need a hint?</button>
-    <div class="hint-text" id="hintText">Think: what Matt is always on, whether there's snow on it or not.</div>
+  <div class="util-row">
+    <button class="util-btn" id="hintBtn">💡 Hint</button>
+    <button class="util-btn" id="answerKeyBtn">📋 Answer Key</button>
+  </div>
+  <div class="hint-text" id="hintText">Think: what Matt is always on, whether there's snow on it or not.</div>
+
+  <!-- Answer Key Panel -->
+  <div class="answer-key" id="answerKey">
+    <h3>Answer Key — guess sequence</h3>
+    <div class="answer-key-grid" id="akGrid"></div>
+    <button class="reveal-btn" id="revealBtn">Show answer</button>
+    <div class="ak-spoiler" id="akSpoiler">✅ &nbsp;T &nbsp;R &nbsp;A &nbsp;I &nbsp;L</div>
   </div>
 
   <div class="keyboard" id="keyboard">
@@ -238,11 +344,22 @@
   </div>
 
 </div>
+
 <script>
   const ANSWER = "TRAIL";
   const MAX_GUESSES = 6;
   const WORD_LENGTH = 5;
   const KB_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ENTER,ZXCVBNM,DEL"];
+
+  // Answer key data: [word, [states], label]
+  const AK_ROWS = [
+    ["BEERS", ["absent","absent","absent","present","absent"], "R is in the word"],
+    ["CLIMB", ["absent","absent","present","absent","absent"], "I is in the word"],
+    ["BIKER", ["absent","present","absent","absent","present"], "I and R are in the word"],
+    ["JOINT", ["absent","absent","present","absent","present"], "I and T are in the word"],
+    ["RAILS", ["present","present","present","present","absent"], "R, A, I, L all in the word!"],
+    ["TRAIL", ["correct","correct","correct","correct","correct"], "🎉 That's the word!"],
+  ];
 
   let currentRow = 0;
   let currentCol = 0;
@@ -267,7 +384,33 @@
     tiles.push(rowTiles);
   }
 
-  // Build keyboard using divs instead of buttons (avoids iOS button quirks)
+  // Build answer key panel
+  const akGrid = document.getElementById("akGrid");
+  AK_ROWS.forEach((row, i) => {
+    const [word, states, label] = row;
+    const rowEl = document.createElement("div");
+    rowEl.className = "answer-key-row";
+    const num = document.createElement("span");
+    num.className = "ak-num";
+    num.textContent = i + 1;
+    const tilesEl = document.createElement("div");
+    tilesEl.className = "ak-tiles";
+    word.split("").forEach((letter, li) => {
+      const t = document.createElement("div");
+      t.className = "ak-tile " + states[li];
+      t.textContent = letter;
+      tilesEl.appendChild(t);
+    });
+    const labelEl = document.createElement("span");
+    labelEl.className = "ak-label";
+    labelEl.textContent = label;
+    rowEl.appendChild(num);
+    rowEl.appendChild(tilesEl);
+    rowEl.appendChild(labelEl);
+    akGrid.appendChild(rowEl);
+  });
+
+  // Build keyboard
   KB_ROWS.forEach((rowStr, ri) => {
     const rowEl = document.getElementById("kb-row-" + ri);
     rowStr.split(",").forEach(chunk => {
@@ -278,20 +421,24 @@
       key.setAttribute("role", "button");
       key.setAttribute("tabindex", "0");
       if (!isSpecial) key.dataset.letter = chunk;
-
-      // Use click only — most reliable across iOS Safari and desktop
       key.addEventListener("click", () => handleKey(chunk));
-
       rowEl.appendChild(key);
     });
   });
 
-  // Hint button
+  // Util buttons
   document.getElementById("hintBtn").addEventListener("click", () => {
     document.getElementById("hintText").classList.toggle("visible");
   });
+  document.getElementById("answerKeyBtn").addEventListener("click", () => {
+    document.getElementById("answerKey").classList.toggle("visible");
+  });
+  document.getElementById("revealBtn").addEventListener("click", () => {
+    document.getElementById("akSpoiler").classList.add("visible");
+    document.getElementById("revealBtn").style.display = "none";
+  });
 
-  // Physical keyboard (desktop)
+  // Physical keyboard
   document.addEventListener("keydown", e => {
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     if (e.key === "Enter") handleKey("ENTER");
@@ -341,11 +488,14 @@
     const lastRow = currentRow >= MAX_GUESSES - 1;
 
     if (won) {
+      const winRow = currentRow;
       setTimeout(() => {
+        bounceRow(winRow);
+        launchConfetti();
         showMessage("🎉 Happy Birthday, Matt!", "win");
         document.getElementById("footer").classList.add("visible");
         gameOver = true;
-      }, WORD_LENGTH * 200 + 400);
+      }, WORD_LENGTH * 200 + 300);
     } else if (lastRow) {
       setTimeout(() => {
         showMessage("The word was TRAIL 🏔️", "error");
@@ -385,6 +535,16 @@
     });
   }
 
+  function bounceRow(row) {
+    tiles[row].forEach((tile, i) => {
+      setTimeout(() => {
+        tile.classList.remove("bounce-win");
+        void tile.offsetWidth;
+        tile.classList.add("bounce-win");
+      }, i * 80);
+    });
+  }
+
   function updateKey(letter, state) {
     const priority = { correct: 3, present: 2, absent: 1 };
     if (!keyStates[letter] || priority[state] > priority[keyStates[letter]]) {
@@ -412,6 +572,50 @@
     el.textContent = msg;
     el.className = "message " + (type || "");
     if (duration) setTimeout(() => { el.textContent = ""; el.className = "message"; }, duration);
+  }
+
+  // ---- Confetti ----
+  function launchConfetti() {
+    const canvas = document.getElementById("confetti-canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const colors = ["#6aaa64","#c9b458","#4a90d9","#e74c3c","#f39c12","#9b59b6"];
+    const pieces = Array.from({length: 120}, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height * 0.5,
+      w: Math.random() * 10 + 5,
+      h: Math.random() * 6 + 3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vx: (Math.random() - 0.5) * 4,
+      vy: Math.random() * 4 + 2,
+      angle: Math.random() * 360,
+      spin: (Math.random() - 0.5) * 6,
+      opacity: 1,
+    }));
+
+    let frame = 0;
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pieces.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.angle += p.spin;
+        if (frame > 120) p.opacity -= 0.012;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      frame++;
+      if (frame < 220) requestAnimationFrame(draw);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    draw();
   }
 </script>
 </body>
