@@ -18,6 +18,20 @@
       padding: 1.5rem 0.75rem 2rem;
     }
 
+    /* Hidden input that captures typing on iOS */
+    #hidden-input {
+      position: fixed;
+      top: -9999px;
+      left: -9999px;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      font-size: 16px; /* prevents iOS auto-zoom */
+      border: none;
+      outline: none;
+      background: transparent;
+    }
+
     .wordle-wrap {
       max-width: 480px;
       width: 100%;
@@ -44,6 +58,19 @@
     .wordle-header h1 { font-size: 22px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
     .wordle-header p { font-size: 13px; color: #666; }
 
+    /* Tap to start banner — shown on mobile until user taps */
+    .tap-to-start {
+      text-align: center;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 0.75rem;
+      padding: 8px;
+      border: 1px dashed #d3d6da;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .tap-to-start.hidden { display: none; }
+
     .grid {
       display: flex;
       flex-direction: column;
@@ -62,6 +89,7 @@
       background: #fff;
       text-transform: uppercase;
       user-select: none;
+      cursor: pointer;
     }
     .tile.filled { border-color: #999; }
     .tile.absent  { background: #787c7e; color: #fff; border-color: #787c7e; }
@@ -122,7 +150,7 @@
       color: #888;
       cursor: pointer;
       font-family: inherit;
-      display: inline-block;
+      -webkit-appearance: none;
     }
 
     .hint-text {
@@ -193,9 +221,10 @@
       color: #aaa;
       cursor: pointer;
       font-family: inherit;
+      -webkit-appearance: none;
     }
 
-    /* KEYBOARD — buttons with explicit cursor:pointer for iOS */
+    /* On-screen keyboard — visible on mobile as backup */
     .keyboard {
       display: flex;
       flex-direction: column;
@@ -222,10 +251,9 @@
       text-transform: uppercase;
       font-family: inherit;
       user-select: none;
-      /* iOS Safari requires this on buttons */
       -webkit-appearance: none;
-      appearance: none;
-      outline: none;
+      /* Make iOS treat this as tappable */
+      -webkit-tap-highlight-color: rgba(0,0,0,0.1);
     }
     .key.wide { max-width: 58px; font-size: 11px; flex: 1.5; }
     .key.absent  { background: #787c7e; color: #fff; }
@@ -267,6 +295,10 @@
 </head>
 <body>
 <canvas id="confetti-canvas"></canvas>
+
+<!-- Hidden input: captures native iOS keyboard input -->
+<input id="hidden-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+
 <div class="wordle-wrap">
 
   <div class="wordle-header">
@@ -274,6 +306,9 @@
     <h1>Matt Lindh</h1>
     <p>A five-letter word. You have 6 guesses.</p>
   </div>
+
+  <!-- Tap to play banner for mobile -->
+  <div class="tap-to-start" id="tapBanner">👆 Tap here to start typing</div>
 
   <div class="grid" id="grid"></div>
   <div class="message" id="message"></div>
@@ -335,6 +370,52 @@
   let gameOver = false;
   let keyStates = {};
 
+  const hiddenInput = document.getElementById("hidden-input");
+  const tapBanner = document.getElementById("tapBanner");
+
+  // Focus hidden input on tap anywhere on the grid or tap banner
+  function focusInput() {
+    hiddenInput.value = "";
+    hiddenInput.focus();
+    tapBanner.classList.add("hidden");
+  }
+
+  tapBanner.addEventListener("click", focusInput);
+  tapBanner.addEventListener("touchend", function(e) {
+    e.preventDefault();
+    focusInput();
+  });
+
+  document.getElementById("grid").addEventListener("click", focusInput);
+  document.getElementById("grid").addEventListener("touchend", function(e) {
+    e.preventDefault();
+    focusInput();
+  });
+
+  // Listen for input from the hidden field (iOS native keyboard)
+  hiddenInput.addEventListener("input", function() {
+    const val = hiddenInput.value;
+    if (!val) return;
+    const last = val[val.length - 1];
+    hiddenInput.value = "";
+    if (/^[a-zA-Z]$/.test(last)) {
+      handleKey(last.toUpperCase());
+    }
+  });
+
+  hiddenInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { e.preventDefault(); handleKey("ENTER"); }
+    if (e.key === "Backspace") { e.preventDefault(); handleKey("DEL"); }
+  });
+
+  // Desktop physical keyboard
+  document.addEventListener("keydown", function(e) {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === "Enter") { e.preventDefault(); handleKey("ENTER"); }
+    else if (e.key === "Backspace") { e.preventDefault(); handleKey("DEL"); }
+    else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toUpperCase());
+  });
+
   // Build grid
   const gridEl = document.getElementById("grid");
   const tiles = [];
@@ -354,8 +435,7 @@
 
   // Build answer key
   const akGrid = document.getElementById("akGrid");
-  AK_ROWS.forEach((row, i) => {
-    const [word, states, label] = row;
+  AK_ROWS.forEach(([word, states, label], i) => {
     const rowEl = document.createElement("div");
     rowEl.className = "answer-key-row";
     const num = document.createElement("span");
@@ -378,53 +458,39 @@
     akGrid.appendChild(rowEl);
   });
 
-  // Build keyboard — attach touchend for iOS, click for desktop
-  function attachKeyHandler(el, fn) {
-    let didTouch = false;
-    el.addEventListener("touchend", function(e) {
-      e.preventDefault();
-      didTouch = true;
-      fn();
-      setTimeout(() => { didTouch = false; }, 500);
-    });
-    el.addEventListener("click", function() {
-      if (didTouch) return;
-      fn();
-    });
-  }
-
+  // Build on-screen keyboard — these work on desktop; on mobile they also call handleKey
   KB_ROWS.forEach((rowStr, ri) => {
     const rowEl = document.getElementById("kb-row-" + ri);
     rowStr.split(",").forEach(chunk => {
       const btn = document.createElement("button");
-      const isSpecial = chunk.length > 1;
-      btn.className = "key" + (isSpecial ? " wide" : "");
-      btn.textContent = chunk;
       btn.type = "button";
-      if (!isSpecial) btn.dataset.letter = chunk;
-      attachKeyHandler(btn, () => handleKey(chunk));
+      btn.className = "key" + (chunk.length > 1 ? " wide" : "");
+      btn.textContent = chunk;
+      if (chunk.length === 1) btn.dataset.letter = chunk;
+
+      // On mobile, tapping a key focuses the hidden input AND sends the key
+      btn.addEventListener("click", function() {
+        if (!gameOver) {
+          hiddenInput.value = "";
+          hiddenInput.focus();
+          handleKey(chunk);
+        }
+      });
+
       rowEl.appendChild(btn);
     });
   });
 
   // Util buttons
-  attachKeyHandler(document.getElementById("hintBtn"), () => {
+  document.getElementById("hintBtn").addEventListener("click", function() {
     document.getElementById("hintText").classList.toggle("visible");
   });
-  attachKeyHandler(document.getElementById("answerKeyBtn"), () => {
+  document.getElementById("answerKeyBtn").addEventListener("click", function() {
     document.getElementById("answerKey").classList.toggle("visible");
   });
-  attachKeyHandler(document.getElementById("revealBtn"), () => {
+  document.getElementById("revealBtn").addEventListener("click", function() {
     document.getElementById("akSpoiler").classList.add("visible");
     document.getElementById("revealBtn").style.display = "none";
-  });
-
-  // Physical keyboard
-  document.addEventListener("keydown", e => {
-    if (e.ctrlKey || e.altKey || e.metaKey) return;
-    if (e.key === "Enter") handleKey("ENTER");
-    else if (e.key === "Backspace") handleKey("DEL");
-    else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toUpperCase());
   });
 
   function handleKey(key) {
@@ -464,10 +530,8 @@
     const guess = currentGuess.join("");
     const result = scoreGuess(guess, ANSWER);
     revealRow(currentRow, guess, result);
-
     const won = guess === ANSWER;
     const lastRow = currentRow >= MAX_GUESSES - 1;
-
     if (won) {
       const winRow = currentRow;
       setTimeout(() => {
@@ -476,15 +540,16 @@
         showMessage("🎉 Happy Birthday, Matt!", "win");
         document.getElementById("footer").classList.add("visible");
         gameOver = true;
+        hiddenInput.blur();
       }, WORD_LENGTH * 200 + 300);
     } else if (lastRow) {
       setTimeout(() => {
         showMessage("The word was TRAIL 🏔️", "error");
         document.getElementById("footer").classList.add("visible");
         gameOver = true;
+        hiddenInput.blur();
       }, WORD_LENGTH * 200 + 400);
     }
-
     currentRow++;
     currentCol = 0;
     currentGuess = [];
@@ -592,6 +657,12 @@
       else ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
     draw();
+  }
+
+  // Auto-focus on desktop load
+  if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+    hiddenInput.focus();
+    tapBanner.classList.add("hidden");
   }
 </script>
 </body>
