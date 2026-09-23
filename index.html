@@ -413,12 +413,17 @@
     if (e.key === "Backspace") { e.preventDefault(); handleKey("DEL"); }
   });
 
-  // Desktop physical keyboard
+  // Desktop physical keyboard — skip if inputLocked (already handled by hidden input's input event)
   document.addEventListener("keydown", function(e) {
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     if (e.key === "Enter") { e.preventDefault(); handleKey("ENTER"); }
     else if (e.key === "Backspace") { e.preventDefault(); handleKey("DEL"); }
-    else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toUpperCase());
+    else if (/^[a-zA-Z]$/.test(e.key)) {
+      if (inputLocked) return;
+      inputLocked = true;
+      handleKey(e.key.toUpperCase());
+      setTimeout(() => { inputLocked = false; }, 300);
+    }
   });
 
   // Build grid
